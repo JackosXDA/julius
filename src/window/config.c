@@ -34,6 +34,9 @@ static void button_language_select(int param1, int param2);
 static void button_reset_defaults(int param1, int param2);
 static void button_close(int save, int param2);
 static void button_page(int param1, int param2);
+static int config_change_basic(config_key key);
+static int config_change_string_basic(config_string_key key);
+static int config_change_string_language(config_string_key key);
 
 
 static generic_button checkbox_buttons[] = {
@@ -146,7 +149,8 @@ static struct {
         char original_value[CONFIG_STRING_VALUE_MAX];
         char new_value[CONFIG_STRING_VALUE_MAX];
         int (*change_action)(config_string_key key);
-    } config_string_values[CONFIG_STRING_MAX_ENTRIES];    uint8_t language_options_data[MAX_LANGUAGE_DIRS][CONFIG_STRING_VALUE_MAX];
+    } config_string_values[CONFIG_STRING_MAX_ENTRIES];    
+    uint8_t language_options_data[MAX_LANGUAGE_DIRS][CONFIG_STRING_VALUE_MAX];
     uint8_t *language_options[MAX_LANGUAGE_DIRS];
     char language_options_utf8[MAX_LANGUAGE_DIRS][CONFIG_STRING_VALUE_MAX];
     int num_language_options;
@@ -162,12 +166,14 @@ static void init(void)
         config_key key = checkbox_buttons[i].parameter1;
         data.config_values[i].original_value = config_get(i);
         data.config_values[i].new_value = config_get(i);
+        data.config_values[i].change_action = config_change_basic;
     }
     for (int i = 0; i < CONFIG_STRING_MAX_ENTRIES; i++) {
         const char *value = config_get_string(i);
         strncpy(data.config_string_values[i].original_value, value, CONFIG_STRING_VALUE_MAX - 1);
         strncpy(data.config_string_values[i].new_value, value, CONFIG_STRING_VALUE_MAX - 1);
     }
+    data.config_string_values[0].change_action = config_change_string_language;
 
     string_copy(string_from_ascii("(default)"), data.language_options_data[0], CONFIG_STRING_VALUE_MAX);
     data.language_options[0] = data.language_options_data[0];
