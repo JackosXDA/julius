@@ -2,6 +2,7 @@
 
 #include "building/building.h"
 #include "building/destruction.h"
+#include "building/roadblock.h"
 #include "core/calc.h"
 #include "figure/combat.h"
 #include "figure/route.h"
@@ -87,37 +88,30 @@ static void move_to_next_tile(figure *f)
             return;
         case DIR_0_TOP:
             f->y--;
-            f->grid_offset -= 162;
             break;
         case DIR_1_TOP_RIGHT:
             f->x++; f->y--;
-            f->grid_offset -= 161;
             break;
         case DIR_2_RIGHT:
             f->x++;
-            f->grid_offset += 1;
             break;
         case DIR_3_BOTTOM_RIGHT:
             f->x++; f->y++;
-            f->grid_offset += 163;
             break;
         case DIR_4_BOTTOM:
             f->y++;
-            f->grid_offset += 162;
             break;
         case DIR_5_BOTTOM_LEFT:
             f->x--; f->y++;
-            f->grid_offset += 161;
             break;
         case DIR_6_LEFT:
             f->x--;
-            f->grid_offset -= 1;
             break;
         case DIR_7_TOP_LEFT:
             f->x--; f->y--;
-            f->grid_offset -= 163;
             break;
     }
+    f->grid_offset += map_grid_direction_delta(f->direction);
     map_figure_add(f);
     if (map_terrain_is(f->grid_offset, TERRAIN_ROAD)) {
         f->is_on_road = 1;
@@ -197,13 +191,17 @@ static void advance_route_tile(figure *f, int roaming_enabled)
         }
     } else if (map_terrain_is(target_grid_offset, TERRAIN_ROAD | TERRAIN_ACCESS_RAMP)) {
         if (roaming_enabled && map_terrain_is(target_grid_offset, TERRAIN_BUILDING)) {
-            if (building_get(map_building_at(target_grid_offset))->type == BUILDING_GATEHOUSE) {
+            building* b = building_get(map_building_at(target_grid_offset));
+            if (b->type == BUILDING_GATEHOUSE) {
                 // do not allow roaming through gatehouse
                 f->direction = DIR_FIGURE_REROUTE;
             }
-            if (building_get(map_building_at(target_grid_offset))->type == BUILDING_ROADBLOCK) {
+            if (b->type == BUILDING_ROADBLOCK) {
                 // do not allow roaming through roadblock
-                f->direction = DIR_FIGURE_REROUTE;
+                int permission = get_permission_for_figure_type(f);
+                if (!building_roadblock_get_permission(permission, b)) {
+                    f->direction = DIR_FIGURE_REROUTE;
+                }
             }
         }
     } else if (map_terrain_is(target_grid_offset, TERRAIN_BUILDING)) {
@@ -219,6 +217,31 @@ static void advance_route_tile(figure *f, int roaming_enabled)
         }
     } else if (map_terrain_is(target_grid_offset, TERRAIN_IMPASSABLE)) {
         f->direction = DIR_FIGURE_REROUTE;
+    }
+}
+
+static roadblock_permission get_permission_for_figure_type(figure* f)
+{
+    switch (f->type) {
+    case FIGURE_ENGINEER:
+    case FIGURE_PREFECT:
+        return PERMISSION_MAINTENANCE;
+        break;
+    case FIGURE_PRIEST:
+        return PERMISSION_PRIEST;
+        break;
+    case FIGURE_MARKET_TRADER:
+        return PERMISSION_MARKET;
+        break;
+    case FIGURE_GLADIATOR:
+    case FIGURE_CHARIOTEER:
+    case FIGURE_ACTOR:
+    case FIGURE_LION_TAMER:
+        return PERMISSION_ENTERTAINER;
+        break;
+    default:
+        return PERMISSION_NONE;
+        break;
     }
 }
 
@@ -393,7 +416,8 @@ void figure_movement_roam_ticks(figure *f, int num_ticks)
                 return;
             }
             int road_tiles[8];
-            int adjacent_road_tiles = map_get_adjacent_road_tiles_for_roaming(f->grid_offset, road_tiles);
+            int permission = get_permission_for_figure_type(f);
+            int adjacent_road_tiles = map_get_adjacent_road_tiles_for_roaming(f->grid_offset, road_tiles, permission);
             if (adjacent_road_tiles == 3 && map_get_diagonal_road_tiles_for_roaming(f->grid_offset, road_tiles) >= 5) {
                 // go in the straight direction of a double-wide road
                 adjacent_road_tiles = 2;

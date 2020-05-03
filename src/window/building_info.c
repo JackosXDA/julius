@@ -40,6 +40,8 @@
 #include "window/building/terrain.h"
 #include "window/building/utility.h"
 
+#define OFFSET(x,y) (x + GRID_SIZE * y)
+
 static void button_help(int param1, int param2);
 static void button_close(int param1, int param2);
 static void button_advisor(int advisor, int param2);
@@ -298,7 +300,10 @@ static void init(int grid_offset)
     for (int i = 0; i < 7; i++) {
         context.figure.figure_ids[i] = 0;
     }
-    static const int FIGURE_OFFSETS[] = {0, -162, 162, 1, -1, -163, -161, 161, 163};
+    static const int FIGURE_OFFSETS[] = {
+        OFFSET(0,0), OFFSET(0,-1), OFFSET(0,1), OFFSET(1,0), OFFSET(-1,0),
+        OFFSET(-1,-1), OFFSET(1,-1), OFFSET(-1,1), OFFSET(1,1)
+    };
     for (int i = 0; i < 9 && context.figure.count < 7; i++) {
         int figure_id = map_figure_at(grid_offset + FIGURE_OFFSETS[i]);
         while (figure_id > 0 && context.figure.count < 7) {
@@ -501,9 +506,14 @@ static void draw_background(void)
             window_building_draw_triumphal_arch(&context);
         } else if (btype == BUILDING_PREFECTURE) {
             window_building_draw_prefect(&context);
-        } else if (btype == BUILDING_ROADBLOCK) {
-            window_building_draw_roadblock(&context);
-        } else if (btype == BUILDING_GATEHOUSE) {
+	} else if (btype == BUILDING_ROADBLOCK) {
+	    if (context.storage_show_special_orders) {
+	        window_building_draw_roadblock_orders(&context);
+	    } else {
+       	        window_building_draw_roadblock(&context);
+	    }
+	}
+	else if (btype == BUILDING_GATEHOUSE) {
             window_building_draw_gatehouse(&context);
         } else if (btype == BUILDING_TOWER) {
             window_building_draw_tower(&context);
@@ -552,6 +562,12 @@ static void draw_foreground(void)
             } else {
                 window_building_draw_market_foreground(&context);
             }
+        } else if (btype == BUILDING_ROADBLOCK) {
+            if (context.storage_show_special_orders) {
+                window_building_draw_roadblock_orders_foreground(&context);
+            } else {
+                window_building_draw_roadblock_foreground(&context);
+            }
         }
     } else if (context.type == BUILDING_INFO_LEGION) {
         window_building_draw_legion_info_foreground(&context);
@@ -585,6 +601,12 @@ static int handle_specific_building_info_mouse(const mouse *m)
                 window_building_handle_mouse_market_orders(m, &context);
             } else {
                 window_building_handle_mouse_market(m, &context);
+            }
+	} else if (btype == BUILDING_ROADBLOCK) {
+            if (context.storage_show_special_orders) {
+                return window_building_handle_mouse_roadblock_orders(m, &context);
+            } else {
+                return window_building_handle_mouse_roadblock(m, &context);
             }
 	} else if (btype == BUILDING_GRANARY) {
             if (context.storage_show_special_orders) {
