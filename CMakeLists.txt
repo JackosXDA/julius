@@ -356,6 +356,7 @@ set(INPUT_FILES
     ${PROJECT_SOURCE_DIR}/src/input/mouse.c
     ${PROJECT_SOURCE_DIR}/src/input/scroll.c
     ${PROJECT_SOURCE_DIR}/src/input/touch.c
+    ${PROJECT_SOURCE_DIR}/src/input/zoom.c
 )
 set(MAP_FILES
     ${PROJECT_SOURCE_DIR}/src/map/aqueduct.c
@@ -455,7 +456,7 @@ set(WIDGET_FILES
     ${PROJECT_SOURCE_DIR}/src/widget/minimap.c
     ${PROJECT_SOURCE_DIR}/src/widget/sidebar.c
     ${PROJECT_SOURCE_DIR}/src/widget/sidebar_editor.c
-    ${PROJECT_SOURCE_DIR}/src/widget/sidebar_extra.c    
+    ${PROJECT_SOURCE_DIR}/src/widget/sidebar_extra.c
     ${PROJECT_SOURCE_DIR}/src/widget/top_menu.c
     ${PROJECT_SOURCE_DIR}/src/widget/top_menu_editor.c
 )
